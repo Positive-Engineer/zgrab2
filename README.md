@@ -1,6 +1,17 @@
 ZGrab 2.0
 =========
 
+Fork оригинального ZGrab 2.0(2020-06-19) с изменениями под требования "Проекта". 
+
+Изменения обусловлены необходимостью другой формы вывода результатов.
+
+
+ - изменен вывод и логика работы модуля banner (2020-06-19)
+
+
+Все изменения по проекту отображаются в [**_CHANGELOG_**](https://github.com/Positive-Engineer/zgrab2/blob/master/CHANGELOG.md)
+
+
 This repo contains the new ZGrab framework, and will eventually replace https://github.com/zmap/zgrab.
 
 ## Building
