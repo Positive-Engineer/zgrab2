@@ -4,6 +4,8 @@
 package banner
 
 import (
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -18,9 +20,13 @@ import (
 // Flags give the command-line flags for the banner module.
 type Flags struct {
 	zgrab2.BaseFlags
-	Probe    string `long:"probe" default:"\\n" description:"Probe to send to the server. Use triple slashes to escape, for example \\\\\\n is literal \\n" `
-	Pattern  string `long:"pattern" description:"Pattern to match, must be valid regexp."`
-	MaxTries int    `long:"max-tries" default:"1" description:"Number of tries for timeouts and connection errors before giving up."`
+	Probe                string `long:"probe" default:"" description:"Probe to send to the server. Use triple slashes to escape, for example \\\\\\n is literal \\n" `
+	Pattern              string `long:"pattern" description:"Pattern to match, must be valid regexp."`
+	MaxTries             int    `long:"max-tries" default:"1" description:"Number of tries for timeouts and connection errors before giving up."`
+	OnlyBASE64           bool   `long:"only-base64" description:"Output banner response from host only in base64."`
+	ProbeBASE64          string `long:"single-payload" description:"Probe to send to the server, in base64."`
+	SingleContains       string `long:"single-contain" description:"search bytes in banner, set in base64."`
+	SingleContainsString string `long:"single-contain-string" default:"" description:"search substring in banner, set in string."`
 }
 
 // Module is the implementation of the zgrab2.Module interface.
@@ -35,8 +41,9 @@ type Scanner struct {
 }
 
 type Results struct {
-	Banner string `json:"banner,omitempty"`
-	Length int    `json:"length,omitempty"`
+	Banner       string `json:"banner,omitempty"`
+	Length       int    `json:"length,omitempty"`
+	BannerBase64 string `json:"banner_base64,omitempty"`
 }
 
 // RegisterModule is called by modules/banner.go to register the scanner.
@@ -98,11 +105,21 @@ func (scanner *Scanner) Init(flags zgrab2.ScanFlags) error {
 	f, _ := flags.(*Flags)
 	scanner.config = f
 	scanner.regex = regexp.MustCompile(scanner.config.Pattern)
-	probe, err := strconv.Unquote(fmt.Sprintf(`"%s"`, scanner.config.Probe))
-	if err != nil {
-		panic("Probe error")
+
+	if len(scanner.config.Probe) > 0 {
+		probe, err := strconv.Unquote(fmt.Sprintf(`"%s"`, scanner.config.Probe))
+		if err != nil {
+			panic("Probe error")
+		}
+		scanner.probe = []byte(probe)
+	} else if len(scanner.config.ProbeBASE64) > 0 {
+		probe, err := base64.StdEncoding.DecodeString(scanner.config.ProbeBASE64)
+		if err != nil {
+			panic("Probe(BASE64) error")
+		}
+		scanner.probe = probe
 	}
-	scanner.probe = []byte(probe)
+
 	return nil
 }
 
@@ -130,9 +147,12 @@ func (scanner *Scanner) Scan(target zgrab2.ScanTarget) (zgrab2.ScanStatus, inter
 
 	var ret []byte
 	try = 0
+	err = nil
 	for try < scanner.config.MaxTries {
 		try += 1
-		_, err = conn.Write(scanner.probe)
+		if len(scanner.probe) > 0 {
+			_, err = conn.Write(scanner.probe)
+		}
 		ret, readerr = zgrab2.ReadAvailable(conn)
 		if err != nil {
 			continue
@@ -148,11 +168,35 @@ func (scanner *Scanner) Scan(target zgrab2.ScanTarget) (zgrab2.ScanStatus, inter
 	if readerr != io.EOF && readerr != nil {
 		return zgrab2.TryGetScanStatus(readerr), nil, readerr
 	}
-	results := Results{Banner: string(ret), Length: len(ret)}
-	if scanner.regex.Match(ret) {
-		return zgrab2.SCAN_SUCCESS, &results, nil
+	banner_base64 := base64.StdEncoding.EncodeToString(ret)
+	banner_str := ""
+	if !(scanner.config.OnlyBASE64) {
+		banner_str = string(ret)
 	}
+	results := Results{
+		Banner:       banner_str,
+		Length:       len(ret),
+		BannerBase64: banner_base64}
 
+	if len(scanner.config.SingleContains) == 0 && len(scanner.config.SingleContainsString) == 0 {
+		if scanner.regex.Match(ret) {
+			return zgrab2.SCAN_SUCCESS, &results, nil
+		}
+	} else {
+		check_bytes := []byte(scanner.config.SingleContainsString)
+		var err_check_bytes error
+		err_check_bytes = nil
+		if len(scanner.config.SingleContains) > 0 {
+			check_bytes, err_check_bytes = base64.StdEncoding.DecodeString(scanner.config.SingleContains)
+		}
+		if err_check_bytes == nil && len(check_bytes) > 0 {
+			if bytes.Contains(ret, check_bytes) {
+				return zgrab2.SCAN_SUCCESS, &results, nil
+			} else {
+				return zgrab2.SCAN_SUCCESS_NOTCONTAIN, nil, nil
+			}
+		}
+	}
 	return zgrab2.SCAN_PROTOCOL_ERROR, &results, NoMatchError
 
 }
