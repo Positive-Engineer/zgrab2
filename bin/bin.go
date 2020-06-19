@@ -13,7 +13,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	flags "github.com/zmap/zflags"
-	"github.com/zmap/zgrab2"
+	"github.com/Positive-Engineer/zgrab2"
 )
 
 // Get the value of the ZGRAB2_MEMPROFILE variable (or the empty string).

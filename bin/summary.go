@@ -1,6 +1,6 @@
 package bin
 
-import "github.com/zmap/zgrab2"
+import "github.com/Positive-Engineer/zgrab2"
 
 // Summary holds the results of a run of a ZGrab2 binary.
 type Summary struct {

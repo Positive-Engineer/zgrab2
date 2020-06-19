@@ -8,13 +8,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/Positive-Engineer/zgrab2"
 	"io"
 	"log"
 	"net"
 	"regexp"
 	"strconv"
-
-	"github.com/zmap/zgrab2"
 )
 
 // Flags give the command-line flags for the banner module.
