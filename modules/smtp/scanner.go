@@ -31,8 +31,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Positive-Engineer/zgrab2"
 	log "github.com/sirupsen/logrus"
-	"github.com/zmap/zgrab2"
 )
 
 // ErrInvalidResponse is returned when the server returns an invalid or unexpected response.
@@ -214,12 +214,12 @@ func VerifySMTPContents(banner string) (zgrab2.ScanStatus, int) {
 	case err == nil && (code < 200 || code >= 300):
 		return zgrab2.SCAN_APPLICATION_ERROR, code
 	case err == nil,
-	     strings.Contains(banner, "STMP"),
-	     strings.Contains(lowerBanner, "blacklist"),
-	     strings.Contains(lowerBanner, "abuse"),
-	     strings.Contains(lowerBanner, "rbl"),
-	     strings.Contains(lowerBanner, "spamhaus"),
-	     strings.Contains(lowerBanner, "relay"):
+		strings.Contains(banner, "STMP"),
+		strings.Contains(lowerBanner, "blacklist"),
+		strings.Contains(lowerBanner, "abuse"),
+		strings.Contains(lowerBanner, "rbl"),
+		strings.Contains(lowerBanner, "spamhaus"),
+		strings.Contains(lowerBanner, "relay"):
 		return zgrab2.SCAN_SUCCESS, 0
 	default:
 		return zgrab2.SCAN_PROTOCOL_ERROR, 0

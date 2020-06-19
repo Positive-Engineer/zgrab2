@@ -17,10 +17,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Positive-Engineer/zgrab2"
+	"github.com/Positive-Engineer/zgrab2/lib/http"
 	log "github.com/sirupsen/logrus"
 	"github.com/zmap/zcrypto/tls"
-	"github.com/zmap/zgrab2"
-	"github.com/zmap/zgrab2/lib/http"
 	"golang.org/x/net/html/charset"
 )
 

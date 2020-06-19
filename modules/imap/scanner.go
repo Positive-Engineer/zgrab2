@@ -23,13 +23,13 @@
 package imap
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 
 	"strings"
 
+	"github.com/Positive-Engineer/zgrab2"
 	log "github.com/sirupsen/logrus"
-	"github.com/zmap/zgrab2"
 )
 
 // ScanResults instances are returned by the module's Scan function.
@@ -154,18 +154,18 @@ func VerifyIMAPContents(banner string) zgrab2.ScanStatus {
 	lowerBanner := strings.ToLower(banner)
 	switch {
 	case strings.HasPrefix(banner, "* NO"),
-	     strings.HasPrefix(banner, "* BAD"):
+		strings.HasPrefix(banner, "* BAD"):
 		return zgrab2.SCAN_APPLICATION_ERROR
 	case strings.HasPrefix(banner, "* OK"),
-	     strings.HasPrefix(banner, "* PREAUTH"),
-	     strings.HasPrefix(banner, "* BYE"),
-	     strings.HasPrefix(banner, "* OKAY"),
-	     strings.Contains(banner, "IMAP"),
-	     strings.Contains(lowerBanner, "blacklist"),
-	     strings.Contains(lowerBanner, "abuse"),
-	     strings.Contains(lowerBanner, "rbl"),
-	     strings.Contains(lowerBanner, "spamhaus"),
-	     strings.Contains(lowerBanner, "relay"):
+		strings.HasPrefix(banner, "* PREAUTH"),
+		strings.HasPrefix(banner, "* BYE"),
+		strings.HasPrefix(banner, "* OKAY"),
+		strings.Contains(banner, "IMAP"),
+		strings.Contains(lowerBanner, "blacklist"),
+		strings.Contains(lowerBanner, "abuse"),
+		strings.Contains(lowerBanner, "rbl"),
+		strings.Contains(lowerBanner, "spamhaus"),
+		strings.Contains(lowerBanner, "relay"):
 		return zgrab2.SCAN_SUCCESS
 	default:
 		return zgrab2.SCAN_PROTOCOL_ERROR

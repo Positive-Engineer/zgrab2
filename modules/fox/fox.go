@@ -3,12 +3,12 @@ package fox
 import (
 	"encoding/hex"
 	"errors"
+	"io"
 	"net"
 	"strconv"
 	"strings"
-	"io"
 
-	"github.com/zmap/zgrab2"
+	"github.com/Positive-Engineer/zgrab2"
 )
 
 const (

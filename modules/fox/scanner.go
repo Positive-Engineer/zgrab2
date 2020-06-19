@@ -6,8 +6,8 @@
 package fox
 
 import (
+	"github.com/Positive-Engineer/zgrab2"
 	log "github.com/sirupsen/logrus"
-	"github.com/zmap/zgrab2"
 )
 
 // Flags holds the command-line configuration for the fox scan module.

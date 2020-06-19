@@ -4,7 +4,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/zmap/zgrab2"
+	"github.com/Positive-Engineer/zgrab2"
 )
 
 // HandshakeLog gives the results of the initial connection handshake in a form
@@ -152,11 +152,11 @@ func (conn *Connection) Connect(connectDescriptor string) (*HandshakeLog, error)
 
 	// TODO: Variable fields in the connect descriptor (e.g. host?)
 	connectPacket := &TNSConnect{
-		Version:              conn.scanner.config.Version,
-		MinVersion:           conn.scanner.config.MinVersion,
-		GlobalServiceOptions: ServiceOptions(u16Flag(conn.scanner.config.GlobalServiceOptions)),
-		SDU:                  u16Flag(conn.scanner.config.SDU),
-		TDU:                  u16Flag(conn.scanner.config.TDU),
+		Version:                 conn.scanner.config.Version,
+		MinVersion:              conn.scanner.config.MinVersion,
+		GlobalServiceOptions:    ServiceOptions(u16Flag(conn.scanner.config.GlobalServiceOptions)),
+		SDU:                     u16Flag(conn.scanner.config.SDU),
+		TDU:                     u16Flag(conn.scanner.config.TDU),
 		ProtocolCharacteristics: NTProtocolCharacteristics(u16Flag(conn.scanner.config.ProtocolCharacterisics)),
 		MaxBeforeAck:            0,
 		ByteOrder:               defaultByteOrder,

@@ -14,8 +14,8 @@ package mssql
 import (
 	"strings"
 
+	"github.com/Positive-Engineer/zgrab2"
 	log "github.com/sirupsen/logrus"
-	"github.com/zmap/zgrab2"
 )
 
 // ScanResults contains detailed information about each step of the

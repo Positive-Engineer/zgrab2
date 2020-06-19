@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Positive-Engineer/zgrab2"
 	log "github.com/sirupsen/logrus"
-	"github.com/zmap/zgrab2"
 )
 
 var (

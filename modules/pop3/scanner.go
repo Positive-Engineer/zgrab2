@@ -26,12 +26,12 @@
 package pop3
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/Positive-Engineer/zgrab2"
 	log "github.com/sirupsen/logrus"
-	"github.com/zmap/zgrab2"
 )
 
 // ScanResults instances are returned by the module's Scan function.
@@ -170,14 +170,14 @@ func VerifyPOP3Contents(banner string) zgrab2.ScanStatus {
 	case strings.HasPrefix(banner, "-ERR "):
 		return zgrab2.SCAN_APPLICATION_ERROR
 	case strings.HasPrefix(banner, "+OK "),
-	     strings.Contains(banner, "POP3"),
-	     // These are rare for POP3 if they happen at all,
-	     // But it won't hurt to check just in case as a backup
-	     strings.Contains(lowerBanner, "blacklist"),
-	     strings.Contains(lowerBanner, "abuse"),
-	     strings.Contains(lowerBanner, "rbl"),
-	     strings.Contains(lowerBanner, "spamhaus"),
-	     strings.Contains(lowerBanner, "relay"):
+		strings.Contains(banner, "POP3"),
+		// These are rare for POP3 if they happen at all,
+		// But it won't hurt to check just in case as a backup
+		strings.Contains(lowerBanner, "blacklist"),
+		strings.Contains(lowerBanner, "abuse"),
+		strings.Contains(lowerBanner, "rbl"),
+		strings.Contains(lowerBanner, "spamhaus"),
+		strings.Contains(lowerBanner, "relay"):
 		return zgrab2.SCAN_SUCCESS
 	default:
 		return zgrab2.SCAN_PROTOCOL_ERROR

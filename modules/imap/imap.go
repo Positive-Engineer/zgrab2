@@ -1,11 +1,11 @@
 package imap
 
 import (
+	"io"
 	"net"
 	"regexp"
-	"io"
 
-	"github.com/zmap/zgrab2"
+	"github.com/Positive-Engineer/zgrab2"
 )
 
 // This is the regex used in zgrab.

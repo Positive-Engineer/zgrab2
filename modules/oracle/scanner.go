@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/Positive-Engineer/zgrab2"
 	log "github.com/sirupsen/logrus"
-	"github.com/zmap/zgrab2"
 )
 
 // ScanResults instances are returned by the module's Scan function.

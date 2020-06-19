@@ -16,11 +16,11 @@ package dnp3
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
-	"errors"
 
-	"github.com/zmap/zgrab2"
+	"github.com/Positive-Engineer/zgrab2"
 )
 
 // DNP3 Flags

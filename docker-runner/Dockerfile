@@ -22,4 +22,4 @@ RUN chmod a+x ./docker-runner/entrypoint.sh
 RUN make container-clean
 
 CMD []
-ENTRYPOINT ["/go/src/github.com/zmap/zgrab2/docker-runner/entrypoint.sh"]
+ENTRYPOINT ["/go/src/github.com/Positive-Engineer/zgrab2/docker-runner/entrypoint.sh"]
