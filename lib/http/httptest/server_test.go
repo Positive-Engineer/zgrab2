@@ -10,7 +10,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/zmap/zgrab2/lib/http"
+	"github.com/Positive-Engineer/zgrab2/lib/http"
 )
 
 func TestServer(t *testing.T) {

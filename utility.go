@@ -9,8 +9,8 @@ import (
 
 	"time"
 
-	"github.com/zmap/zflags"
 	"github.com/sirupsen/logrus"
+	"github.com/zmap/zflags"
 	"runtime/debug"
 )
 
@@ -217,7 +217,7 @@ func IsTimeoutError(err error) bool {
 // before re-raising the original panic.
 // Example:
 //     defer zgrab2.LogPanic("Error decoding body '%x'", body)
-func LogPanic(format string, args...interface{}) {
+func LogPanic(format string, args ...interface{}) {
 	err := recover()
 	if err == nil {
 		return

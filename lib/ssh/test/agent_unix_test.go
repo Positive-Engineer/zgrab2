@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/Positive-Engineer/zgrab2/lib/ssh"
-	"github.com/zmap/zgrab2/lib/ssh/agent"
+	"github.com/Positive-Engineer/zgrab2/lib/ssh/agent"
 )
 
 func DISABLED_TestAgentForward(t *testing.T) {

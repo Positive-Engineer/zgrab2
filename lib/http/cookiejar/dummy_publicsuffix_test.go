@@ -4,7 +4,7 @@
 
 package cookiejar_test
 
-import "github.com/zmap/zgrab2/lib/http/cookiejar"
+import "github.com/Positive-Engineer/zgrab2/lib/http/cookiejar"
 
 type dummypsl struct {
 	List cookiejar.PublicSuffixList

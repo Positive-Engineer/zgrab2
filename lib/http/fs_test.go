@@ -26,8 +26,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/zmap/zgrab2/lib/http"
-	"github.com/zmap/zgrab2/lib/http/httptest"
+	. "github.com/Positive-Engineer/zgrab2/lib/http"
+	"github.com/Positive-Engineer/zgrab2/lib/http/httptest"
 )
 
 const (

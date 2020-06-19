@@ -4,4 +4,4 @@
 
 // This package contains integration tests for the
 // github.com/zmap/zgrab2/lib/ssh.
-package test // import "github.com/zmap/zgrab2/lib/ssh/test"
+package test // import "github.com/Positive-Engineer/zgrab2/lib/ssh/test"

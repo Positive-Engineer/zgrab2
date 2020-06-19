@@ -16,7 +16,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/zmap/zgrab2/lib/ssh/terminal"
+	"github.com/Positive-Engineer/zgrab2/lib/ssh/terminal"
 )
 
 type serverType func(Channel, <-chan *Request, *testing.T)

@@ -78,29 +78,29 @@ var integers = map[int64]string{
 
 // redisErrors maps error strings to their encoding
 var redisErrors = map[string]string{
-	"": "-\r\n",
+	"":                         "-\r\n",
 	"ERR something went wrong": "-ERR something went wrong\r\n",
 	"singleword":               "-singleword\r\n",
 }
 
 // redisErrors maps error strings to their prefixes
 var redisErrorPrefixes = map[string]string{
-	"": "",
+	"":                         "",
 	"ERR something went wrong": "ERR",
 	"singleword":               "singleword",
 }
 
 // redisErrorMessages maps error strings to their "messages"
 var redisErrorMessages = map[string]string{
-	"": "",
+	"":                         "",
 	"ERR something went wrong": "something went wrong",
 	"singleword":               "singleword",
 }
 
 // redisArrays maps encoded array values to the corresponding array (Note: reverse key/value order from other maps)
 var redisArrays = map[string]RedisArray{
-	"*0\r\n":                                  RedisArray{},
-	"*1\r\n+\r\n":                             RedisArray{SimpleString("")},
+	"*0\r\n":      RedisArray{},
+	"*1\r\n+\r\n": RedisArray{SimpleString("")},
 	"*2\r\n*1\r\n*0\r\n*1\r\n$5\r\n12345\r\n": RedisArray{RedisArray{RedisArray{}}, RedisArray{BulkString("12345")}},
 	"*5\r\n" +
 		"+simpleString\r\n" +

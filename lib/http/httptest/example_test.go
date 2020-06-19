@@ -10,8 +10,8 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/zmap/zgrab2/lib/http"
-	"github.com/zmap/zgrab2/lib/http/httptest"
+	"github.com/Positive-Engineer/zgrab2/lib/http"
+	"github.com/Positive-Engineer/zgrab2/lib/http/httptest"
 )
 
 func ExampleResponseRecorder() {

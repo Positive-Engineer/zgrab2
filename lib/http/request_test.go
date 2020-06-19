@@ -19,7 +19,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/zmap/zgrab2/lib/http"
+	. "github.com/Positive-Engineer/zgrab2/lib/http"
 )
 
 func TestQuery(t *testing.T) {

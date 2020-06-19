@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"math"
-	"strings"
 	"net/url"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -22,7 +22,7 @@ func AttributeByteString(valueTag byte, name string, value string, target *bytes
 	//special byte denoting value syntax
 	binary.Write(target, binary.BigEndian, valueTag)
 
-	if len(name) <= math.MaxInt16 && len(name) >= 0  {
+	if len(name) <= math.MaxInt16 && len(name) >= 0 {
 		//append 16-bit signed int denoting name length
 		binary.Write(target, binary.BigEndian, int16(len(name)))
 
@@ -55,7 +55,7 @@ func ConvertURIToIPP(uriString string, tls bool) string {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-			"url": uriString,
+			"url":   uriString,
 		}).Debug("Failed to parse URL from string")
 	}
 	// TODO: Create a better condition than uri.Scheme == "" b/c url.Parse doesn't know whether there's a scheme
