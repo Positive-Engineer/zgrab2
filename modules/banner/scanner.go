@@ -19,9 +19,12 @@ import (
 // Flags give the command-line flags for the banner module.
 type Flags struct {
 	zgrab2.BaseFlags
-	Probe                string `long:"probe" default:"" description:"Probe to send to the server. Use triple slashes to escape, for example \\\\\\n is literal \\n" `
-	Pattern              string `long:"pattern" description:"Pattern to match, must be valid regexp."`
-	MaxTries             int    `long:"max-tries" default:"1" description:"Number of tries for timeouts and connection errors before giving up."`
+	zgrab2.TLSFlags
+	Probe    string `long:"probe" default:"" description:"Probe to send to the server. Use triple slashes to escape, for example \\\\\\n is literal \\n" `
+	Pattern  string `long:"pattern" description:"Pattern to match, must be valid regexp."`
+	MaxTries int    `long:"max-tries" default:"1" description:"Number of tries for timeouts and connection errors before giving up."`
+	// indicates that the client should do a TLS handshake immediately after connecting.
+	UseTLS               bool   `long:"use-tls" description:"client should do a TLS handshake immediately after connecting"`
 	OnlyBASE64           bool   `long:"only-base64" description:"Output banner response from host only in base64."`
 	ProbeBASE64          string `long:"single-payload" description:"Probe to send to the server, in base64."`
 	SingleContains       string `long:"single-contain" description:"search bytes in banner, set in base64."`
@@ -43,6 +46,8 @@ type Results struct {
 	Banner       string `json:"banner,omitempty"`
 	Length       int    `json:"length,omitempty"`
 	BannerBase64 string `json:"banner_base64,omitempty"`
+	// TLSLog is the standard TLS log, if --use-tls is enabled.
+	TLSLog *zgrab2.TLSLog `json:"tls,omitempty"`
 }
 
 // RegisterModule is called by modules/banner.go to register the scanner.
@@ -124,16 +129,20 @@ func (scanner *Scanner) Init(flags zgrab2.ScanFlags) error {
 
 var NoMatchError = errors.New("pattern did not match")
 
+type Connection struct {
+	Conn net.Conn
+}
+
 func (scanner *Scanner) Scan(target zgrab2.ScanTarget) (zgrab2.ScanStatus, interface{}, error) {
 	try := 0
 	var (
-		conn    net.Conn
+		c       net.Conn
 		err     error
 		readerr error
 	)
 	for try < scanner.config.MaxTries {
 		try += 1
-		conn, err = target.Open(&scanner.config.BaseFlags)
+		c, err = target.Open(&scanner.config.BaseFlags)
 		if err != nil {
 			continue
 		}
@@ -142,17 +151,30 @@ func (scanner *Scanner) Scan(target zgrab2.ScanTarget) (zgrab2.ScanStatus, inter
 	if err != nil {
 		return zgrab2.TryGetScanStatus(err), nil, err
 	}
-	defer conn.Close()
+	defer c.Close()
 
+	result := &Results{}
+	if scanner.config.UseTLS {
+		tlsConn, err := scanner.config.TLSFlags.GetTLSConnection(c)
+		if err != nil {
+			return zgrab2.TryGetScanStatus(err), nil, err
+		}
+		result.TLSLog = tlsConn.GetLog()
+		if err := tlsConn.Handshake(); err != nil {
+			return zgrab2.TryGetScanStatus(err), result, err
+		}
+		c = tlsConn
+	}
+	conn := Connection{Conn: c}
 	var ret []byte
 	try = 0
 	err = nil
 	for try < scanner.config.MaxTries {
 		try += 1
 		if len(scanner.probe) > 0 {
-			_, err = conn.Write(scanner.probe)
+			_, err = conn.Conn.Write(scanner.probe)
 		}
-		ret, readerr = zgrab2.ReadAvailable(conn)
+		ret, readerr = zgrab2.ReadAvailable(conn.Conn)
 		if err != nil {
 			continue
 		}
@@ -172,14 +194,13 @@ func (scanner *Scanner) Scan(target zgrab2.ScanTarget) (zgrab2.ScanStatus, inter
 	if !(scanner.config.OnlyBASE64) {
 		banner_str = string(ret)
 	}
-	results := Results{
-		Banner:       banner_str,
-		Length:       len(ret),
-		BannerBase64: banner_base64}
+	result.Banner = banner_str
+	result.Length = len(ret)
+	result.BannerBase64 = banner_base64
 
 	if len(scanner.config.SingleContains) == 0 && len(scanner.config.SingleContainsString) == 0 {
 		if scanner.regex.Match(ret) {
-			return zgrab2.SCAN_SUCCESS, &results, nil
+			return zgrab2.SCAN_SUCCESS, &result, nil
 		}
 	} else {
 		check_bytes := []byte(scanner.config.SingleContainsString)
@@ -190,12 +211,12 @@ func (scanner *Scanner) Scan(target zgrab2.ScanTarget) (zgrab2.ScanStatus, inter
 		}
 		if err_check_bytes == nil && len(check_bytes) > 0 {
 			if bytes.Contains(ret, check_bytes) {
-				return zgrab2.SCAN_SUCCESS, &results, nil
+				return zgrab2.SCAN_SUCCESS, &result, nil
 			} else {
 				return zgrab2.SCAN_SUCCESS_NOTCONTAIN, nil, nil
 			}
 		}
 	}
-	return zgrab2.SCAN_PROTOCOL_ERROR, &results, NoMatchError
+	return zgrab2.SCAN_PROTOCOL_ERROR, &result, NoMatchError
 
 }
