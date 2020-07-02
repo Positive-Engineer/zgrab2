@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"io"
 	"net"
@@ -41,12 +42,14 @@ var (
 type Flags struct {
 	zgrab2.BaseFlags
 	zgrab2.TLSFlags
-	Method       string `long:"method" default:"GET" description:"Set HTTP request method type"`
-	Endpoint     string `long:"endpoint" default:"/" description:"Send an HTTP request to an endpoint"`
-	UserAgent    string `long:"user-agent" default:"Mozilla/5.0 zgrab/0.x" description:"Set a custom user agent"`
-	RetryHTTPS   bool   `long:"retry-https" description:"If the initial request fails, reconnect and try with HTTPS."`
-	MaxSize      int    `long:"max-size" default:"256" description:"Max kilobytes to read in response to an HTTP request"`
-	MaxRedirects int    `long:"max-redirects" default:"0" description:"Max number of redirects to follow"`
+	Method         string `long:"method" default:"GET" description:"Set HTTP request method type"`
+	Endpoint       string `long:"endpoint" default:"/" description:"Send an HTTP request to an endpoint"`
+	UserAgent      string `long:"user-agent" default:"Mozilla/5.0 zgrab/0.x" description:"Set a custom user agent"`
+	RetryHTTPS     bool   `long:"retry-https" description:"If the initial request fails, reconnect and try with HTTPS."`
+	MaxSize        int    `long:"max-size" default:"256" description:"Max kilobytes to read in response to an HTTP request"`
+	MaxRedirects   int    `long:"max-redirects" default:"0" description:"Max number of redirects to follow"`
+	SingleContains string `long:"single-contain" description:"search bytes in response, set in base64."`
+	OnlyBASE64     bool   `long:"only-base64" description:"Output banner response from host only in base64."`
 
 	// FollowLocalhostRedirects overrides the default behavior to return
 	// ErrRedirLocalhost whenever a redirect points to localhost.
@@ -283,6 +286,8 @@ func (scan *scan) getCheckRedirect() func(*http.Request, *http.Response, []*http
 		io.CopyN(b, res.Body, readLen)
 		res.BodyText = b.String()
 		if len(res.BodyText) > 0 {
+			body_base64 := base64.StdEncoding.EncodeToString(b.Bytes())
+			res.BodyBase64 = body_base64
 			m := sha256.New()
 			m.Write(b.Bytes())
 			res.BodySHA256 = m.Sum(nil)
@@ -410,6 +415,9 @@ func (scan *scan) Grab() *zgrab2.ScanError {
 	}
 
 	if len(scan.results.Response.BodyText) > 0 {
+		// add base64 response
+		body_base64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+		scan.results.Response.BodyBase64 = body_base64
 		m := sha256.New()
 		m.Write(buf.Bytes())
 		scan.results.Response.BodySHA256 = m.Sum(nil)
@@ -434,9 +442,46 @@ func (scanner *Scanner) Scan(t zgrab2.ScanTarget) (zgrab2.ScanStatus, interface{
 			if retryError != nil {
 				return retryError.Unpack(&retry.results)
 			}
-			return zgrab2.SCAN_SUCCESS, &retry.results, nil
+			if len(scanner.config.SingleContains) == 0 {
+				if scanner.config.OnlyBASE64 {
+					retry.results.Response.BodyText = ""
+				}
+				return zgrab2.SCAN_SUCCESS, &retry.results, nil
+			} else {
+				check_bytes, err_check_bytes := base64.StdEncoding.DecodeString(scanner.config.SingleContains)
+				body_bytes, err_body_bytes := base64.StdEncoding.DecodeString(retry.results.Response.BodyBase64)
+				if err_check_bytes == nil && err_body_bytes == nil && len(check_bytes) > 0 && len(body_bytes) > 0 {
+					if bytes.Contains(body_bytes, check_bytes) {
+						if scanner.config.OnlyBASE64 {
+							retry.results.Response.BodyText = ""
+						}
+						return zgrab2.SCAN_SUCCESS, &retry.results, nil
+					} else {
+						return zgrab2.SCAN_SUCCESS_NOTCONTAIN, nil, nil
+					}
+				}
+
+			}
 		}
 		return err.Unpack(&scan.results)
+	}
+	if len(scanner.config.SingleContains) > 0 {
+		check_bytes, err_check_bytes := base64.StdEncoding.DecodeString(scanner.config.SingleContains)
+		body_bytes, err_body_bytes := base64.StdEncoding.DecodeString(scan.results.Response.BodyBase64)
+		if err_check_bytes == nil && err_body_bytes == nil && len(check_bytes) > 0 && len(body_bytes) > 0 {
+			if bytes.Contains(body_bytes, check_bytes) {
+				if scanner.config.OnlyBASE64 {
+					scan.results.Response.BodyText = ""
+				}
+				return zgrab2.SCAN_SUCCESS, &scan.results, nil
+			} else {
+				return zgrab2.SCAN_SUCCESS_NOTCONTAIN, nil, nil
+			}
+		}
+
+	}
+	if scanner.config.OnlyBASE64 {
+		scan.results.Response.BodyText = ""
 	}
 	return zgrab2.SCAN_SUCCESS, &scan.results, nil
 }
