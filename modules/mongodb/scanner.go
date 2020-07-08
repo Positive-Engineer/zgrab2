@@ -17,6 +17,8 @@ type Module struct {
 // Flags contains mongodb-specific command-line flags.
 type Flags struct {
 	zgrab2.BaseFlags
+	GetLogs  bool `long:"show-logs" description:"Request logs from MongoDB(GetLogs)."`
+	OnlyLogs bool `long:"only-logs" description:"Show results only with logs from MongoDB."`
 }
 
 // Scanner implements the zgrab2.Scanner interface
@@ -25,6 +27,7 @@ type Scanner struct {
 	isMasterMsg         []byte
 	buildInfoCommandMsg []byte
 	buildInfoOpMsg      []byte
+	buildLogsMsg        []byte
 }
 
 // scan holds the state for the scan of an individual target
@@ -70,6 +73,16 @@ func getCommandMsg(database string, commandName string, metadata []byte, command
 // https://docs.mongodb.com/manual/reference/command/isMaster/
 func getIsMasterMsg() []byte {
 	query, err := bson.Marshal(bson.M{"isMaster": 1})
+	if err != nil {
+		// programmer error
+		log.Fatalf("Invalid BSON: %v", err)
+	}
+	query_msg := getOpQuery("admin.$cmd", query)
+	return query_msg
+}
+
+func getLogsMsg() []byte {
+	query, err := bson.Marshal(bson.M{"getLog": "global"})
 	if err != nil {
 		// programmer error
 		log.Fatalf("Invalid BSON: %v", err)
@@ -180,10 +193,17 @@ type IsMaster_t struct {
 	ReadOnly                     bool  `bson:"readOnly" json:"read_only"`
 }
 
+// LogsInfo_t holds the logs returned by the the { getLog: <value> } query
+type LogsInfo_t struct {
+	TotalLinesWritten int32    `bson:"totalLinesWritten,omitempty" json:"totalLinesWritten,omitempty"`
+	Logs              []string `bson:"log,omitempty" json:"log,omitempty"`
+}
+
 // Result holds the data returned by a scan
 type Result struct {
 	IsMaster  *IsMaster_t  `json:"is_master,omitempty"`
 	BuildInfo *BuildInfo_t `json:"build_info,omitempty"`
+	LogsInfo  *LogsInfo_t  `json:"logs_info,omitempty"`
 }
 
 // Init initializes the scanner
@@ -193,6 +213,7 @@ func (scanner *Scanner) Init(flags zgrab2.ScanFlags) error {
 	scanner.isMasterMsg = getIsMasterMsg()
 	scanner.buildInfoCommandMsg = getBuildInfoCommandMsg()
 	scanner.buildInfoOpMsg = getBuildInfoOpMsg()
+	scanner.buildLogsMsg = getLogsMsg()
 	return nil
 }
 
@@ -295,6 +316,41 @@ func getIsMaster(conn *Connection) (*IsMaster_t, error) {
 	return document, nil
 }
 
+// getLogs issues the isMaster command to the MongoDB server and returns the result.
+func getLogs(conn *Connection) (*LogsInfo_t, error) {
+	document := &LogsInfo_t{}
+	doc_offset := MSGHEADER_LEN + 20
+	conn.Write(conn.scanner.buildLogsMsg)
+
+	msg, err := conn.ReadMsg()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(msg) < doc_offset+4 {
+		err = fmt.Errorf("Server truncated message - no query reply (%d bytes: %s)", len(msg), hex.EncodeToString(msg))
+		return nil, err
+	}
+	respFlags := binary.LittleEndian.Uint32(msg[MSGHEADER_LEN : MSGHEADER_LEN+4])
+	if respFlags&QUERY_RESP_FAILED != 0 {
+		err = fmt.Errorf("getLog query failed")
+		return nil, err
+	}
+	doclen := int(binary.LittleEndian.Uint32(msg[doc_offset : doc_offset+4]))
+	if len(msg[doc_offset:]) < doclen {
+		err = fmt.Errorf("Server truncated BSON reply doc (%d bytes: %s)",
+			len(msg[doc_offset:]), hex.EncodeToString(msg))
+		return nil, err
+	}
+	err = bson.Unmarshal(msg[doc_offset:], &document)
+	if err != nil {
+		err = fmt.Errorf("Server sent invalid BSON reply doc (%d bytes: %s)",
+			len(msg[doc_offset:]), hex.EncodeToString(msg))
+		return nil, err
+	}
+	return document, nil
+}
+
 // Scan connects to a host and performs a scan.
 func (scanner *Scanner) Scan(target zgrab2.ScanTarget) (zgrab2.ScanStatus, interface{}, error) {
 	scan, err := scanner.StartScan(&target)
@@ -345,8 +401,25 @@ func (scanner *Scanner) Scan(target zgrab2.ScanTarget) (zgrab2.ScanStatus, inter
 		return zgrab2.SCAN_PROTOCOL_ERROR, &result, err
 	}
 	bson.Unmarshal(msg[MSGHEADER_LEN+resp_offset:], &result.BuildInfo)
+	if scanner.config.GetLogs {
+		var _tmp *LogsInfo_t
+		var err_logs error
+		_tmp, err_logs = getLogs(scan.conn)
+		if err_logs == nil {
+			result.LogsInfo = _tmp
+		}
+	}
+	if !(scanner.config.OnlyLogs) {
+		return zgrab2.SCAN_SUCCESS, &result, err
+	} else {
+		if result.LogsInfo != nil {
+			if result.LogsInfo.TotalLinesWritten > 0 {
+				return zgrab2.SCAN_SUCCESS, &result, err
+			}
 
-	return zgrab2.SCAN_SUCCESS, &result, err
+		}
+	}
+	return zgrab2.SCAN_UNKNOWN_ERROR, nil, nil
 }
 
 // RegisterModule registers the zgrab2 module.

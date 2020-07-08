@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"encoding/binary"
-	"fmt"
 	"github.com/Positive-Engineer/zgrab2"
 	"io"
 )
@@ -54,12 +53,13 @@ func (conn *Connection) ReadMsg() ([]byte, error) {
 		return nil, err
 	}
 	msglen := binary.LittleEndian.Uint32(msglen_buf[:])
-	if msglen < 4 || msglen > 5125 {
-		// msglen is length of message which includes msglen itself; Less than
-		// four is invalid. More than a few K probably mean this isn't actually
-		// a mongodb server.
-		return nil, fmt.Errorf("Server sent invalid message: msglen = %d", msglen)
-	}
+
+	//if msglen < 4 || msglen > 5125 {
+	//	// msglen is length of message which includes msglen itself; Less than
+	//	// four is invalid. More than a few K probably mean this isn't actually
+	//	// a mongodb server.
+	//	return nil, fmt.Errorf("Server sent invalid message: msglen = %d", msglen)
+	//}
 	msg_buf := make([]byte, msglen)
 	// Extra copy to make result look like spec (only four bytes)
 	binary.LittleEndian.PutUint32(msg_buf[0:], msglen)
@@ -67,6 +67,9 @@ func (conn *Connection) ReadMsg() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	//if err != nil {
+	//	return msg_buf, err
+	//}
 	return msg_buf, nil
 }
 
