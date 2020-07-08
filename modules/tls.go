@@ -1,13 +1,19 @@
 package modules
 
 import (
+	"encoding/hex"
 	"github.com/Positive-Engineer/zgrab2"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 type TLSFlags struct {
 	zgrab2.BaseFlags
 	zgrab2.TLSFlags
+	FilterFingerprintMD5    string `long:"filter-md5" description:"filter results with fingerprint md5."`
+	FilterFingerprintSHA1   string `long:"filter-sha1" description:"filter results with fingerprint sha1."`
+	FilterFingerprintSHA256 string `long:"filter-sha256" description:"filter results with fingerprint sha256."`
+	FilterFingerprintSerial string `long:"filter-serialnumber" description:"filter results with fingerprint serial number in dec."`
 }
 
 type TLSModule struct {
@@ -89,7 +95,78 @@ func (s *TLSScanner) Scan(t zgrab2.ScanTarget) (zgrab2.ScanStatus, interface{}, 
 		}
 		return zgrab2.TryGetScanStatus(err), nil, err
 	}
-	return zgrab2.SCAN_SUCCESS, conn.GetLog(), nil
+	LogDataTLS := conn.GetLog()
+	switch {
+	case len(s.config.FilterFingerprintMD5) > 0:
+		_cert_md5 := LogDataTLS.HandshakeLog.ServerCertificates.Certificate.Parsed.FingerprintMD5
+		cert_md5 := hex.EncodeToString(_cert_md5[:])
+		filter_md5 := s.config.FilterFingerprintMD5
+		if cert_md5 == filter_md5 {
+			return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
+		}
+		if LogDataTLS.HandshakeLog.ServerCertificates.Chain != nil {
+			for _, value := range LogDataTLS.HandshakeLog.ServerCertificates.Chain {
+				_cert_md5 := value.Parsed.FingerprintMD5
+				cert_md5 := hex.EncodeToString(_cert_md5[:])
+				if cert_md5 == filter_md5 {
+					return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
+				}
+			}
+		}
+		return zgrab2.SCAN_SUCCESS_NOTCONTAIN, nil, nil
+	case len(s.config.FilterFingerprintSHA1) > 0:
+		_cert_sha1 := LogDataTLS.HandshakeLog.ServerCertificates.Certificate.Parsed.FingerprintSHA1
+		cert_sha1 := hex.EncodeToString(_cert_sha1[:])
+		filter_sha1 := s.config.FilterFingerprintSHA1
+		if cert_sha1 == filter_sha1 {
+			return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
+		}
+		if LogDataTLS.HandshakeLog.ServerCertificates.Chain != nil {
+			for _, value := range LogDataTLS.HandshakeLog.ServerCertificates.Chain {
+				_cert_sha1 := value.Parsed.FingerprintSHA1
+				cert_sha1 := hex.EncodeToString(_cert_sha1[:])
+				if cert_sha1 == filter_sha1 {
+					return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
+				}
+			}
+		}
+		return zgrab2.SCAN_SUCCESS_NOTCONTAIN, nil, nil
+	case len(s.config.FilterFingerprintSHA256) > 0:
+		_cert_sha256 := LogDataTLS.HandshakeLog.ServerCertificates.Certificate.Parsed.FingerprintSHA256
+		cert_sha256 := hex.EncodeToString(_cert_sha256[:])
+		filter_sha256 := s.config.FilterFingerprintSHA256
+		if cert_sha256 == filter_sha256 {
+			return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
+		}
+		if LogDataTLS.HandshakeLog.ServerCertificates.Chain != nil {
+			for _, value := range LogDataTLS.HandshakeLog.ServerCertificates.Chain {
+				_cert_sha256 := value.Parsed.FingerprintSHA256
+				cert_sha256 := hex.EncodeToString(_cert_sha256[:])
+				if cert_sha256 == filter_sha256 {
+					return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
+				}
+			}
+		}
+		return zgrab2.SCAN_SUCCESS_NOTCONTAIN, nil, nil
+	case len(s.config.FilterFingerprintSerial) > 0:
+		_cert_serial := LogDataTLS.HandshakeLog.ServerCertificates.Certificate.Parsed.SerialNumber.Uint64()
+		cert_serial := strconv.FormatUint(_cert_serial, 10)
+		filter_serialnumber := s.config.FilterFingerprintSerial
+		if filter_serialnumber == cert_serial {
+			return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
+		}
+		if LogDataTLS.HandshakeLog.ServerCertificates.Chain != nil {
+			for _, value := range LogDataTLS.HandshakeLog.ServerCertificates.Chain {
+				_cert_serial := value.Parsed.SerialNumber.Uint64()
+				cert_serial := strconv.FormatUint(_cert_serial, 10)
+				if filter_serialnumber == cert_serial {
+					return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
+				}
+			}
+		}
+		return zgrab2.SCAN_SUCCESS_NOTCONTAIN, nil, nil
+	}
+	return zgrab2.SCAN_SUCCESS, LogDataTLS, nil
 }
 
 // Protocol returns the protocol identifer for the scanner.
